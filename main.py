@@ -5,6 +5,7 @@
 from selenium import webdriver
 import time
 import xlrd
+from selenium.webdriver.common.action_chains import ActionChains
 from xlutils.copy import copy  # 写入Excel
 file_path = r"C:\Users\lenovo\PycharmProjects\Spider\data.xls"
 
@@ -24,6 +25,7 @@ def main():
     browser = webdriver.Chrome(executable_path=r"C:\Users\lenovo\PycharmProjects\Spider\chromedriver.exe")
 
     #打开登录页
+    print("打开登录页")
     browser.get("https://passport.zhaopin.com/org/login")
     #点击短信登录
     browser.find_elements_by_css_selector(".k-tabs__item")[1].click()
@@ -44,34 +46,48 @@ def main():
 
     print("等待点击")
     time.sleep(10)
+    #鼠标悬浮到简历管理
+    print("已点击 进行鼠标悬浮")
+    elements = browser.find_element_by_css_selector("body > div.rd55-header > div.rd55-header__nav > div > ul:nth-child(2) > li:nth-child(3) > a")
+    actions = ActionChains(browser)
+    time.sleep(5)
+    actions.move_to_element(elements).perform()
+    time.sleep(5)
+
+    print("悬浮成功点击投递简历")
     #点击全部投递简历
     browser.find_element_by_css_selector("body > div.rd55-header > div.rd55-header__nav > div > ul:nth-child(2) > li:nth-child(3) > ul > li:nth-child(2) > a").click()
-    #点击有意向
-    browser.find_element_by_css_selector("#root > div.app-container.resume-apply > div.k-tabs.k-tabs--border-card.resume-tabs > div.k-tabs__header > div > div.k-tabs__nav > div.k-tabs__item.is-active").click()
-    #当前主窗口
-    current_handle = browser.current_window_handle
 
+    #点击有意向
+    browser.find_element_by_css_selector("#root > div.app-container.resume-apply > div.k-tabs.k-tabs--border-card.resume-tabs > div.k-tabs__header > div > div.k-tabs__nav > div:nth-child(2)").click()
+    print("跳转至有意向")
+
+    time.sleep(5)
     #点击用户名 多个
-    for one in browser.find_elements_by_css_selector(".user-name"):
-        one.click()
-        for handle in browser.window_handles:
-            if handle!=current_handle:
-                browser.switch_to_window(handle)
-                #姓名
-                name = browser.find_element_by_css_selector("").text
-                #性别
-                sex = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > p.resume-content__labels > span:nth-child(1)").text
-                #岗位
-                gangwei = browser.find_element_by_css_selector("#root > div.app-container.resume-detail.resume-detail--medium > div.resume-detail__main.resume-detail__structure > div.resume-content > dl > dd").text
-                #手机号
-                phone = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > div.resume-content__status-box > a.resume-content__button.is-primary.is-static > p.resume-content__mobile-phone > span").text
-                #邮箱
-                email = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > div.resume-content__status-box > a.resume-content__button.is-primary.is-static > p.resume-content__email > span").text
-                #关闭当前窗口切回主窗口
-                tem = [name,sex,gangwei,phone,email]
-                res.append(tem)
-                browser.close()
-                browser.switch_to_window(current_handle)
+    print("开始点击用户名")
+    browser.find_element_by_css_selector("#apply-resume-list > div.fixable-list__footer-wrapper > div.fixable-list__footer.affix-bottom > div > div.resume-action > div.resume-action__buttons > a:nth-child(2)").click()
+
+    current_handle = browser.current_window_handle
+    for one in browser.window_handles:
+        if one!=current_handle:
+            browser.switch_to.window(one)
+
+    print("解析数据")
+    #姓名
+    name = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > div.resume-content__candidate-header > span.resume-content__candidate-name.resume-tomb").text
+    #性别
+    sex = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > p.resume-content__labels > span:nth-child(1)").text
+    #岗位
+    gangwei = browser.find_element_by_css_selector("#root > div.app-container.resume-detail.resume-detail--medium > div.resume-detail__main.resume-detail__structure > div.resume-content > dl > dd").text
+    #手机号
+    phone = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > div.resume-content__status-box > a.resume-content__button.is-primary.is-static > p.resume-content__mobile-phone > span").text
+    #邮箱
+    email = browser.find_element_by_css_selector("#resume-detail-wrapper > div.resume-content.is-mb-0 > div.resume-content__section > div > div.resume-content__candidate-basic > div.resume-content__status-box > a.resume-content__button.is-primary.is-static > p.resume-content__email > span").text
+    #关闭当前窗口切回主窗口
+    tem = [name,sex,gangwei,phone,email]
+    res.append(tem)
+    browser.close()
+    browser.switch_to.window(current_handle)
     return res
 
 
