@@ -64,7 +64,7 @@ def main():
 
     time.sleep(5)
     #点击用户名 多个
-    print("开始点击用户名")
+    print("开始点击简历")
     browser.find_element_by_css_selector("#apply-resume-list > div.fixable-list__footer-wrapper > div.fixable-list__footer.affix-bottom > div > div.resume-action > div.resume-action__buttons > a:nth-child(2)").click()
 
     current_handle = browser.current_window_handle
