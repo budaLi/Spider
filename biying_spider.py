@@ -1,19 +1,19 @@
 # @Time    : 2019/11/14 8:37
 # @Author  : Libuda
-# @FileName: main3.py
+# @FileName: google_spider.py
 # @Software: PyCharm
-
+import time
 from selenium import webdriver
 browser = webdriver.Chrome(executable_path=r"C:\Users\lenovo\PycharmProjects\Spider\chromedriver.exe")
 import xlrd
 from xlutils.copy import copy  # 写入Excel
-file_path = r"C:\Users\lenovo\PycharmProjects\Spider\data.xls"
+file_path = r"C:\Users\lenovo\PycharmProjects\Spider\biying_data.xls"
 from operationExcel import OperationExcel
 class Spider():
     def __init__(self):
-        self.opExcel = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\keywords.xls",0)
+        self.opExcel = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\keyword.xls",0)
     def get_keywords_data(self, row):
-        actual_data = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\keywords.xls",0).get_cel_value(row, 0)
+        actual_data = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\keyword.xls",0).get_cel_value(row, 0)
         return actual_data
 
     def write_to_excel(self,sheet_id,row, col,value):
@@ -38,42 +38,54 @@ class Spider():
                 if index==0:
                     pass
                 else:
-                    self.opExcel = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\data.xls",0)
+                    self.opExcel = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\biying_data.xls",0)
                     self.opExcel.create_sheet(key)
             except Exception as e:
                 print("已有该Excel")
 
             try:
-                browser.get("https://www.google.com/")
+                browser.get("https://cn.bing.com/?FORM=BEHPTB&ensearch=1")
 
-                browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf > div.RNNXgb > div > div.a4bIc > input").send_keys(key)
-
-                browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf > div.FPdoLc.VlcLAe > center > input.gNO89b").click()
+                browser.find_element_by_css_selector("#sb_form_q").send_keys(key)
+                time.sleep(5)
+                browser.find_element_by_css_selector("#sb_form_go").click()
             except Exception as e:
+                print(e)
                 pass
             while 1:
                 res_set = set()
                 try:
-                    title = browser.find_elements_by_css_selector(".S3Uucc")
-                    url = browser.find_elements_by_xpath('//*[@class="r"]/a')
+                    print("开始解析")
+                    title = browser.find_elements_by_css_selector("#b_results > li > h2")
+                    url = browser.find_elements_by_css_selector('#b_results > li> h2 > a')
+
                     for i in range(len(url)):
                         s = url[i].get_attribute("href").split("/")
-                        tmp =s[0]+"//"+s[1]+s[2]
-                        if tmp not in res_set:
+                        try:
+                            tmp =s[0]+"//"+s[2]
+                        except Exception as e:
+                            print(e)
+                            tmp= s[0]+"//"+s[2]
+
+                        if tmp not in res_set and title[i].text!="":
                             res_set.add(tmp)
-                            # print(title[i].text,tmp)
+                            print(title[i].text,tmp)
                             self.write_to_excel(index,count, 0, title[i].text)
                             self.write_to_excel(index,count, 1,tmp)
                             count+=1
-                    next_paget = browser.find_element_by_css_selector("#pnnext > span:nth-child(2)")
+                    time.sleep(5)
+                    next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
                     next_paget.click()
+                    time.sleep(1)
                 except Exception as e:
+                    print(e)
                     test_count =3
                     while test_count>0:
                         try:
-                            next_paget = browser.find_element_by_css_selector("#pnnext > span:nth-child(2)")
+                            next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
                             next_paget.click()
                         except Exception as e:
+                            print("no next")
                             test_count-=1
                             continue
                     break
