@@ -3,17 +3,22 @@
 # @FileName: google_spider.py
 # @Software: PyCharm
 import time
+from configparser import ConfigParser
 from selenium import webdriver
-browser = webdriver.Chrome(executable_path=r"C:\Users\lenovo\PycharmProjects\Spider\chromedriver.exe")
+config_parser = ConfigParser()
+config_parser.read('config.cfg')
+config = config_parser['default']
+
+browser = webdriver.Chrome(executable_path=config['executable_path'])
 import xlrd
 from xlutils.copy import copy  # 写入Excel
-file_path = r"C:\Users\lenovo\PycharmProjects\Spider\biying_data.xls"
+file_path = config['biying_datas']
 from operationExcel import OperationExcel
 class Spider():
     def __init__(self):
-        self.opExcel = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\keyword.xls",0)
+        self.opExcel = OperationExcel(config['keywords_excel_path'],0)
     def get_keywords_data(self, row):
-        actual_data = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\keyword.xls",0).get_cel_value(row, 0)
+        actual_data = OperationExcel(config['keywords_excel_path'],0).get_cel_value(row, 0)
         return actual_data
 
     def write_to_excel(self,sheet_id,row, col,value):
@@ -38,7 +43,7 @@ class Spider():
                 if index==0:
                     pass
                 else:
-                    self.opExcel = OperationExcel(r"C:\Users\lenovo\PycharmProjects\Spider\biying_data.xls",0)
+                    self.opExcel = OperationExcel(config['biying_datas'],0)
                     self.opExcel.create_sheet(key)
             except Exception as e:
                 print("已有该Excel")
@@ -79,16 +84,12 @@ class Spider():
                     time.sleep(1)
                 except Exception as e:
                     print(e)
-                    test_count =3
-                    while test_count>0:
-                        try:
-                            next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
-                            next_paget.click()
-                        except Exception as e:
-                            print("no next")
-                            test_count-=1
-                            continue
-                    break
+                    try:
+                        browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
+                        continue
+                    except Exception as e:
+                        print("no next")
+                        break
 
 
 if __name__=="__main__":
