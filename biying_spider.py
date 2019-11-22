@@ -2,10 +2,10 @@
 # @Author  : Libuda
 # @FileName: google_spider.py
 # @Software: PyCharm
-import time
-import pandas
+
 from configparser import ConfigParser
 from selenium import webdriver
+
 config_parser = ConfigParser()
 config_parser.read('config.cfg')
 config = config_parser['default']
@@ -17,14 +17,16 @@ browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=config
 import xlrd
 from queue import Queue
 from xlutils.copy import copy  # 写入Excel
+
 file_path = config['biying_datas']
 from operationExcel import OperationExcel
-res_count=0
-df = pandas.DataFrame()
+
+res_count = 0
+
 
 class Spider():
     def __init__(self):
-        self.opExcel = OperationExcel(config['keywords_excel_path'],0)
+        self.opExcel = OperationExcel(config['keywords_excel_path'], 0)
         self.keywords_queue = Queue()
 
     def get_keywords_data(self, row):
@@ -33,7 +35,7 @@ class Spider():
         :param row:
         :return:
         """
-        actual_data = OperationExcel(config['keywords_excel_path'],0).get_cel_value(row, 0)
+        actual_data = OperationExcel(config['keywords_excel_path'], 0).get_cel_value(row, 0)
         return actual_data
 
     def gen_keywords_queue(self):
@@ -47,7 +49,7 @@ class Spider():
             self.keywords_queue.put(self.get_keywords_data(index))
         print("关键词队列生成完毕")
 
-    def write_to_excel(self,sheet_id,row, col,value):
+    def write_to_excel(self, sheet_id, row, col, value):
         work_book = xlrd.open_workbook(file_path, formatting_info=False)
         # 先通过xlutils.copy下copy复制Excel
         write_to_work = copy(work_book)
@@ -59,17 +61,14 @@ class Spider():
 
     def main(self):
         global res_count
-        #打开登录页
+        # 打开登录页
+        count = 0
+
         while not self.keywords_queue.empty():
             key = self.keywords_queue.get()
 
-            print("当前关键词",key)
-            try:
-                self.opExcel = OperationExcel(config['biying_datas'], 0)
-                self.opExcel.create_sheet(key)
-                print("创建成功")
-            except Exception as e:
-                print("已有该Excel")
+            print("当前关键词", key)
+
             try:
                 browser.get("https://cn.bing.com/?FORM=BEHPTB&ensearch=1")
                 browser.find_element_by_css_selector("#sb_form_q").send_keys(key)
@@ -78,11 +77,22 @@ class Spider():
                 print(e)
                 pass
             res = set()
+            current_url_set = set()
             global df
             flag = True
-            count = 0
+            test_count = 3
             while flag:
                 try:
+                    if browser.current_url in current_url_set:
+                        if test_count<0:
+                            print("no next")
+                            flag = False
+                        else:
+                            test_count-=1
+                        continue
+                    else:
+                        current_url_set.add(browser.current_url)
+
                     title = browser.find_elements_by_css_selector("#b_results > li > h2")
                     url = browser.find_elements_by_css_selector('#b_results > li> h2 > a')
                     res_dic = {}
@@ -91,29 +101,25 @@ class Spider():
 
                         s = url[i].get_attribute("href").split("/")
                         try:
-                            tmp =s[0]+"//"+s[2]
+                            tmp = s[0] + "//" + s[2]
                         except Exception as e:
                             print(e)
-                            tmp= s[0]+"//"+s[2]
+                            tmp = s[0] + "//" + s[2]
                         if tmp not in res:
                             res.add(tmp)
-                            res_count+=1
+                            res_count += 1
 
-                            self.write_to_excel(-1,count,0,title[i].text)
-                            self.write_to_excel(-1,count,1,tmp)
-                            print(count,title[i].text, tmp)
-                            count+=1
+                            self.write_to_excel(-1, count, 0, title[i].text)
+                            self.write_to_excel(-1, count, 1, tmp)
+                            print(count, title[i].text, tmp)
+                            count += 1
 
-                    current_url =browser.current_url
 
-                    next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
+
+                    next_paget = browser.find_element_by_css_selector(
+                        "#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
                     next_paget.click()
-                    if browser.current_url ==current_url:
-                        print(browser.current_url)
-                        print("no next")
 
-                        flag=False
-                    # time.sleep(1)
                 except Exception as e:
                     print(e)
                     try:
@@ -122,17 +128,10 @@ class Spider():
                     except Exception as e:
                         print("no next")
                         flag = False
-            print("已获取：",str(res_count))
+            print("已获取：", str(res_count))
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     spider = Spider()
     spider.gen_keywords_queue()
     spider.main()
-    # threads = []
-    # for i in range(1):
-    #     thread = threading.Thread(target=spider.main)
-    #     threads.append(thread)
-    # for one in threads:
-    #     one.start()
-    #     one.join()
-
