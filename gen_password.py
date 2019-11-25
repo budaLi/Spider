@@ -14,8 +14,8 @@ if __name__ == '__main__':
         #加密结束时间
         code = str(base64.b64encode(end_date.encode("utf-8")),"utf-8")
         print("注册码为:",code)
-        for i in range(300):
-            print("{}s内此窗口关闭".format(300-i))
+        for i in range(10):
+            print("10s内此窗口关闭")
             time.sleep(1)
     except Exception as e:
         print("时间格式有误")

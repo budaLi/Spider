@@ -19,7 +19,7 @@ class OperationExcel():
             self.file_name = file_name
             self.sheet_id = sheet_id
         else:
-            self.file_name = r"C:\Users\lenovo\PycharmProjects\Spider\data.xls"
+            self.file_name = r"C:\Users\lenovo\PycharmProjects\Spider\biying_data.xls"
             self.sheet_id = 0
         self.tables = self.get_tables()
     def create_sheet(self,sheet_name):
@@ -27,6 +27,7 @@ class OperationExcel():
         wb = xl_copy(ecel)
         wb.add_sheet(sheet_name)
         wb.save(self.file_name)
+
 
     def get_tables(self):
         """
@@ -43,6 +44,7 @@ class OperationExcel():
         :return:
         """
         return self.tables.nrows
+
 
     def get_ncols(self):
         """
@@ -94,5 +96,4 @@ class OperationExcel():
 
 if __name__ == "__main__":
     operatinrExcel = OperationExcel("")
-    operatinrExcel.create_sheet("sss")
-    operatinrExcel.create_sheet("ssa")
+    operatinrExcel.delete_rows(1)

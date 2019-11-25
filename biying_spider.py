@@ -10,25 +10,13 @@ import base64
 import xlrd
 from queue import Queue
 from xlutils.copy import copy  # 写入Excel
-
-
+import pandas
 config_parser = ConfigParser()
 config_parser.read('config.cfg')
 config = config_parser['default']
-chrome_options = webdriver.ChromeOptions()
-browser=webdriver.Chrome(executable_path=config['executable_path'])
-if config['is_have_chrome'] == "0":
-    print("正在使用无界面爬取。。。")
-    prefs = {"profile.managed_default_content_settings.images": 2}  #禁止图片加载
-    chrome_options.add_experimental_option("prefs", prefs)
-    #chrome_options.add_argument('user-agent="Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1"')
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('window-size=1200,1100')
-    browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=config['executable_path'])
+browser = webdriver.PhantomJS(executable_path=config['executable_path'])
+pd = pandas.DataFrame()
 
-
-file_path = config['biying_datas']
 from operationExcel import OperationExcel
 
 res_count = 0
@@ -37,8 +25,14 @@ res_count = 0
 class Spider():
     def __init__(self):
         self.opExcel = OperationExcel(config['keywords_excel_path'], 0)
+        self.file_path = config['biying_datas']
+        self.pass_key_excel = OperationExcel(config['pass_key_path'],0)
+        self.dataExcel = OperationExcel(self.file_path,0)
         self.keywords_queue = Queue()
         self.res = set()
+
+
+        
     def get_keywords_data(self, row):
         """
         获取关键词数据
@@ -49,7 +43,7 @@ class Spider():
         return actual_data
 
 
-    def write_to_excel(self, sheet_id, row, col, value):
+    def write_to_excel(self,file_path, sheet_id, row, col, value):
         """
         写入Excel
         :param sheet_id:
@@ -65,16 +59,25 @@ class Spider():
         sheet_data = write_to_work.get_sheet(sheet_id)
         sheet_data.write(row, col, str(value))
         # 这里要注意保存 可是会将原来的Excel覆盖 样式消失
-        write_to_work.save(file_path)
+        write_to_work.save(self.file_path)
+
 
     def main(self):
-        global res_count,browser
-        count = 0
+        global res_count
+        test_count=int(config['max_test_count'])
+        last_count = 0
+        count = self.dataExcel.tables.nrows
+        print("当前已有url数量：",count)
         key_len = self.opExcel.get_nrows()
         print("关键词总数：",key_len)
-        for index in range(key_len):
+        tem = self.pass_key_excel.tables.nrows-1
+        print("已爬取关键词个数 :",tem)
+        print("剩余爬取关键词个数:",key_len-tem)
+        for index in range(tem,key_len):
+
             key = self.get_keywords_data(index)
             print("当前为第 {} 个关键词:{}".format(index+1, key))
+
             try:
                 print("启动中。。。。，如果20s内没有启动 请重新启动本软件")
                 browser.get("https://cn.bing.com/?FORM=BEHPTB&ensearch=1")
@@ -92,6 +95,7 @@ class Spider():
                         browser.find_element_by_css_selector("#sb_form_q").send_keys(key)
                         browser.find_element_by_css_selector("#sb_form_go").click()
             except Exception as e:
+                print(e)
                 print("正在尝试自动启动。。。。。")
                 browser.get("https://cn.bing.com/?FORM=BEHPTB&ensearch=1")
                 browser.find_element_by_css_selector("#sb_form_q").send_keys(key)
@@ -102,14 +106,15 @@ class Spider():
             while flag:
                 try:
                     if browser.current_url in current_url_set:
-                        if config["max_test_count"]<0:
+                        if test_count<0:
                             print("no next")
                             flag = False
                         else:
-                            print("当前url {} 可能为最后一页,进行第{}次测试".format(browser.current_url,config["max_test_count"]))
-                            config["max_test_count"]-=1
-                        continue
+                            print("当前url {} 可能为最后一页,进行第{}次测试".format(browser.current_url,test_count))
+                            test_count-=1
                     else:
+                        print("当前关键字正在采集的页数为： {}".format(len(current_url_set)+1))
+                        print("当前url",browser.current_url)
                         current_url_set.add(browser.current_url)
 						
                     title = browser.find_elements_by_css_selector("#b_results > li > h2")
@@ -125,19 +130,19 @@ class Spider():
                         if tmp not in self.res:
                             self.res.add(tmp)
                             try:
-                                self.write_to_excel(-1, count, 0, title[i].text)
-                                self.write_to_excel(-1, count, 1, tmp)
+                                self.write_to_excel(self.file_path,-1, count, 0, title[i].text)
+                                self.write_to_excel(self.file_path,-1, count, 1, tmp)
                                 print(count, title[i].text, tmp)
                                 count += 1
                                 res_count += 1
-                            except Exception:
-                                print("请关闭Excel 否则10秒后本条数据将不再写入")
+                            except Exception as e :
+                                print(e,"请关闭Excel 否则10秒后本条数据将不再写入")
                                 for i in range(10):
                                     print(10 - i)
                                     time.sleep(1)
                                 try:
-                                    self.write_to_excel(-1, count, 0, title[i].text)
-                                    self.write_to_excel(-1, count, 1, tmp)
+                                    self.write_to_excel(self.file_path,-1, count, 0, title[i].text)
+                                    self.write_to_excel(self.file_path,-1, count, 1, tmp)
                                     print(count, title[i].text, tmp,browser.current_url)
                                 except Exception:
                                     print("已漏掉数据...{}  {}".format(title[i].text,tmp))
@@ -145,31 +150,61 @@ class Spider():
                     try:
                         next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(9) > a")
                         next_paget.click()
-                    except Exception:
-                        next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
-                        next_paget.click()
-
-                except Exception:
+                    except Exception as e:
+                        print(e)
+                        try:
+                            next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(8) > a")
+                            next_paget.click()
+                        except Exception as e :
+                            print(e)
+                            next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
+                            next_paget.click()
+                except Exception as e:
+                    print(e)
                     try:
                         try:
                             next_paget = browser.find_element_by_css_selector(
                                 "#b_results > li.b_pag > nav > ul > li:nth-child(9) > a")
                             next_paget.click()
-                        except Exception:
-                            next_paget = browser.find_element_by_css_selector(
-                                "#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
-                            next_paget.click()
-                            print("找不到下一页呢")
-                            time.sleep(5)
-                            flag= False
-                    except Exception:
+                        except Exception as e:
+                            print(e)
+                            try:
+                                next_paget = browser.find_element_by_css_selector(
+                                    "#b_results > li.b_pag > nav > ul > li:nth-child(8) > a")
+                                next_paget.click()
+                            except Exception as e:
+                                print(e)
+                                next_paget = browser.find_element_by_css_selector(
+                                    "#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
+                                next_paget.click()
+                                print("找不到下一页呢")
+                                time.sleep(5)
+                                flag= False
+                    except Exception as e :
+                        print(e)
                         print("可能是最后一页了呢 当前url为{}".format(browser.current_url))
                         time.sleep(5)
                         flag= False
-            print("已获取：", str(res_count))
 
+            try:
+                global pd
+                res={}
+                res["key"] = str(key)
+                res['count'] = str(res_count-last_count)
+                pd = pd.append([res])
+                pd.to_excel(config['pass_key_path'],index=0)
+                # self.write_to_excel(config['pass_key_path'],0,tem,0,key)
+                # self.write_to_excel(config['pass_key_path'],0,tem,1,res_count-last_count)
+                print("当前关键词 ：{} 爬取完毕 已爬取数据 ：{}".format(key,res_count-last_count))
+            except Exception as e:
+                print(e)
+
+            print("已获取：", str(res_count))
+            last_count = res_count
+        print("爬取结束")
 
 if __name__ == "__main__":
+
     try:
         code = config['code']
         now_time = int(time.time())
@@ -178,10 +213,15 @@ if __name__ == "__main__":
         time_sti = int(time.mktime(s)) #时间戳
         if now_time>time_sti:
             print("您的注册码已过期 请联系管理员")
+            time.sleep(10)
         else:
-            print("======欢迎使用 必应爬虫======")
+            print("欢迎使用 （国外客户搜索系统）")
             spider = Spider()
+
             spider.main()
     except Exception as e:
         print(e)
         print("您的注册码格式有误")
+        time.sleep(10)
+
+
