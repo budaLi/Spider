@@ -70,13 +70,12 @@ class Spider():
         print("当前已有url数量：",count)
         key_len = self.opExcel.get_nrows()
         print("关键词总数：",key_len)
-        tem = self.pass_key_excel.tables.nrows-1
+        tem = 0 if self.pass_key_excel.tables.nrows==0 else self.pass_key_excel.tables.nrows-1
         print("已爬取关键词个数 :",tem)
         print("剩余爬取关键词个数:",key_len-tem)
         for index in range(tem,key_len):
 
             key = self.get_keywords_data(index)
-            print("当前为第 {} 个关键词:{}".format(index+1, key))
 
             try:
                 print("启动中。。。。，如果20s内没有启动 请重新启动本软件")
@@ -113,7 +112,7 @@ class Spider():
                             print("当前url {} 可能为最后一页,进行第{}次测试".format(browser.current_url,test_count))
                             test_count-=1
                     else:
-                        print("当前关键字正在采集的页数为： {}".format(len(current_url_set)+1))
+                        print("当前正在采集第 {} 个关键词:{}，采集的页数为 :{} ".format((index + 1), key,len(current_url_set)+1))
                         print("当前url",browser.current_url)
                         current_url_set.add(browser.current_url)
 						
@@ -125,7 +124,7 @@ class Spider():
                         try:
                             tmp = s[0] + "//" + s[2]
                         except Exception as e:
-                            print(e)
+                            # print(e)
                             tmp = s[0] + "//" + s[2]
                         if tmp not in self.res:
                             self.res.add(tmp)
@@ -151,29 +150,29 @@ class Spider():
                         next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(9) > a")
                         next_paget.click()
                     except Exception as e:
-                        print(e)
+                        # print(e)
                         try:
                             next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(8) > a")
                             next_paget.click()
                         except Exception as e :
-                            print(e)
+                            # print(e)
                             next_paget = browser.find_element_by_css_selector("#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
                             next_paget.click()
                 except Exception as e:
-                    print(e)
+                    # print(e)
                     try:
                         try:
                             next_paget = browser.find_element_by_css_selector(
                                 "#b_results > li.b_pag > nav > ul > li:nth-child(9) > a")
                             next_paget.click()
                         except Exception as e:
-                            print(e)
+                            # print(e)
                             try:
                                 next_paget = browser.find_element_by_css_selector(
                                     "#b_results > li.b_pag > nav > ul > li:nth-child(8) > a")
                                 next_paget.click()
                             except Exception as e:
-                                print(e)
+                                # print(e)
                                 next_paget = browser.find_element_by_css_selector(
                                     "#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
                                 next_paget.click()
@@ -181,7 +180,7 @@ class Spider():
                                 time.sleep(5)
                                 flag= False
                     except Exception as e :
-                        print(e)
+                        # print(e)
                         print("可能是最后一页了呢 当前url为{}".format(browser.current_url))
                         time.sleep(5)
                         flag= False
@@ -199,9 +198,11 @@ class Spider():
             except Exception as e:
                 print(e)
 
-            print("已获取：", str(res_count))
+            print("本次采集已获取url总数为：", str(res_count))
             last_count = res_count
-        print("爬取结束")
+        print("关键词搜索完毕，谢谢使用!")
+        while 1:
+            pass
 
 if __name__ == "__main__":
 
