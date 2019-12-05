@@ -10,12 +10,11 @@ import base64
 import xlrd
 from queue import Queue
 from xlutils.copy import copy  # 写入Excel
-import pandas
 config_parser = ConfigParser()
 config_parser.read('config.cfg')
 config = config_parser['default']
 browser = webdriver.PhantomJS(executable_path=config['executable_path'])
-pd = pandas.DataFrame()
+
 
 from operationExcel import OperationExcel
 
@@ -94,7 +93,7 @@ class Spider():
                         browser.find_element_by_css_selector("#sb_form_q").send_keys(key)
                         browser.find_element_by_css_selector("#sb_form_go").click()
             except Exception as e:
-                print(e)
+                # print(e)
                 print("正在尝试自动启动。。。。。")
                 browser.get("https://cn.bing.com/?FORM=BEHPTB&ensearch=1")
                 browser.find_element_by_css_selector("#sb_form_q").send_keys(key)
@@ -172,28 +171,35 @@ class Spider():
                                     "#b_results > li.b_pag > nav > ul > li:nth-child(8) > a")
                                 next_paget.click()
                             except Exception as e:
-                                # print(e)
-                                next_paget = browser.find_element_by_css_selector(
-                                    "#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
-                                next_paget.click()
-                                print("找不到下一页呢")
-                                time.sleep(5)
-                                flag= False
+                                try:
+                                    next_paget = browser.find_element_by_css_selector(
+                                        "#b_results > li.b_pag > nav > ul > li:nth-child(7) > a")
+                                    next_paget.click()
+                                except Exception as e :
+                                    # print(e)
+                                    try:
+                                        next_paget = browser.find_element_by_css_selector(
+                                            "#b_results > li.b_pag > nav > ul > li:nth-child(6) > a")
+                                        next_paget.click()
+                                    except Exception as e:
+                                        print("找不到下一页呢")
+                                        time.sleep(5)
+                                        flag= False
                     except Exception as e :
-                        # print(e)
+                        print(e)
                         print("可能是最后一页了呢 当前url为{}".format(browser.current_url))
                         time.sleep(5)
                         flag= False
 
             try:
-                global pd
-                res={}
-                res["key"] = str(key)
-                res['count'] = str(res_count-last_count)
-                pd = pd.append([res])
-                pd.to_excel(config['pass_key_path'],index=0)
-                # self.write_to_excel(config['pass_key_path'],0,tem,0,key)
-                # self.write_to_excel(config['pass_key_path'],0,tem,1,res_count-last_count)
+
+                # res={}
+                # res["key"] = str(key)
+                # res['count'] = str(res_count-last_count)
+                # pd = pd.append([res])
+                # pd.to_excel(config['pass_key_path'],index=0)
+                self.write_to_excel(config['pass_key_path'],0,tem,0,key)
+                self.write_to_excel(config['pass_key_path'],0,tem,1,res_count-last_count)
                 print("当前关键词 ：{} 爬取完毕 已爬取数据 ：{}".format(key,res_count-last_count))
             except Exception as e:
                 print(e)

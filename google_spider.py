@@ -11,6 +11,7 @@ config_parser.read('config.cfg')
 config = config_parser['default']
 
 
+
 browser = webdriver.Chrome(executable_path=config["executable_path"])
 import xlrd
 from xlutils.copy import copy  # 写入Excel
@@ -34,6 +35,7 @@ class Spider():
         write_to_work.save(file_path)
 
     def main(self):
+        
         #打开登录页
         key_len  = self.opExcel.get_nrows()
 
@@ -114,6 +116,7 @@ class Spider():
 
 
 if __name__=="__main__":
+    print("欢迎使用 （国外客户搜索系统）")
     spider = Spider()
     spider.main()
 
