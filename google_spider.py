@@ -9,7 +9,7 @@ from selenium import webdriver
 config_parser = ConfigParser()
 config_parser.read('config.cfg')
 config = config_parser['default']
-
+wait_time = 3
 
 
 browser = webdriver.Chrome(executable_path=config["executable_path"])
@@ -35,7 +35,7 @@ class Spider():
         write_to_work.save(file_path)
 
     def main(self):
-        
+
         #打开登录页
         key_len  = self.opExcel.get_nrows()
 
@@ -54,9 +54,9 @@ class Spider():
 
             try:
                 browser.get("https://www.google.com/")
-                time.sleep(5)
+                time.sleep(wait_time)
                 browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf > div.RNNXgb > div > div.a4bIc > input").send_keys(key)
-                time.sleep(5)
+                time.sleep(wait_time)
                 try:
                     browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf.emcav > div.UUbT9 > div.aajZCb > div.tfB0Bf > center > input.gNO89b").click()
                 except:
@@ -65,14 +65,16 @@ class Spider():
             except Exception as e:
                 print(e)
                 browser.get("https://www.google.com/")
-                time.sleep(5)
+                time.sleep(wait_time)
                 browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf > div.RNNXgb > div > div.a4bIc > input").send_keys(key)
-                time.sleep(5)
+                time.sleep(wait_time)
                 browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf.emcav > div.UUbT9 > div.aajZCb > div.tfB0Bf > center > input.gNO89b").click()
+
+            res_set = set()
             while 1:
-                res_set = set()
+
                 try:
-                    time.sleep(3)
+                    time.sleep(wait_time)
                     title = browser.find_elements_by_css_selector(".S3Uucc")
                     url = browser.find_elements_by_xpath('//*[@class="r"]/a')
                     for i in range(len(title)):
