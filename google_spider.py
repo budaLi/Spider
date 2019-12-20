@@ -9,7 +9,7 @@ from selenium import webdriver
 config_parser = ConfigParser()
 config_parser.read('config.cfg')
 config = config_parser['default']
-wait_time = 3
+wait_time = 1
 
 
 browser = webdriver.Chrome(executable_path=config["executable_path"])
@@ -17,14 +17,16 @@ import xlrd
 from xlutils.copy import copy  # 写入Excel
 file_path = config['google_datas']
 from operationExcel import OperationExcel
+
 class Spider():
     def __init__(self):
         self.opExcel = OperationExcel(config['keywords_excel_path'],0)
+        self.dataExcel = OperationExcel(file_path,0)
     def get_keywords_data(self, row):
         actual_data = OperationExcel(config['keywords_excel_path'],0).get_cel_value(row, 0)
         return actual_data
 
-    def write_to_excel(self,sheet_id,row, col,value):
+    def write_to_excel(self,file_path, sheet_id, row, col, value):
         work_book = xlrd.open_workbook(file_path, formatting_info=False)
         # 先通过xlutils.copy下copy复制Excel
         write_to_work = copy(work_book)
@@ -37,31 +39,25 @@ class Spider():
     def main(self):
 
         #打开登录页
+        count = self.dataExcel.tables.nrows
+        print("当前已有url数量：",count)
+        tmp = count
         key_len  = self.opExcel.get_nrows()
-
+        print("关键词总数：",key_len)
         for index in range(key_len):
-            count = 0
             key = self.get_keywords_data(index)
-            print(key)
-            try:
-                if index==0:
-                    pass
-                else:
-                    self.opExcel = OperationExcel(config['google_datas'],0)
-                    self.opExcel.create_sheet(key)
-            except Exception as e:
-                print("已有该Excel")
 
             try:
                 browser.get("https://www.google.com/")
                 time.sleep(wait_time)
-                browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf > div.RNNXgb > div > div.a4bIc > input").send_keys(key)
+                browser.find_element_by_xpath('//*[@id="tsf"]/div[2]/div[1]/div[1]/div/div[2]/input').send_keys(key)
                 time.sleep(wait_time)
                 try:
+
                     browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf.emcav > div.UUbT9 > div.aajZCb > div.tfB0Bf > center > input.gNO89b").click()
                 except:
                     browser.find_element_by_css_selector(
-                        "#tsf > div:nth-child(2) > div.A8SBwf.emcat > div.FPdoLc.tfB0Bf > center > input.gNO89b").click()
+                        "#tsf > div:nth-child(2) > div.A8SBwf > div.FPdoLc.tfB0Bf > center > input.gNO89b").click()
             except Exception as e:
                 print(e)
                 browser.get("https://www.google.com/")
@@ -71,11 +67,15 @@ class Spider():
                 browser.find_element_by_css_selector("#tsf > div:nth-child(2) > div.A8SBwf.emcav > div.UUbT9 > div.aajZCb > div.tfB0Bf > center > input.gNO89b").click()
 
             res_set = set()
-            while 1:
+            page = 1
+            flag = True
+            while flag:
 
                 try:
+                    print("当前正在采集第 {} 个关键词:{}，采集的页数为 :{} ".format((index + 1), key, page))
+                    page+=1
                     time.sleep(wait_time)
-                    title = browser.find_elements_by_css_selector(".S3Uucc")
+                    title = browser.find_elements_by_css_selector(".LC20lb")
                     url = browser.find_elements_by_xpath('//*[@class="r"]/a')
                     for i in range(len(title)):
                         s = url[i].get_attribute("href").split("/")
@@ -87,34 +87,44 @@ class Spider():
 
                         if tmp not in res_set and title[i].text!="":
                             res_set.add(tmp)
-                            print(title[i].text,tmp)
                             try:
-                                self.write_to_excel(index,count, 0, title[i].text)
-                                self.write_to_excel(index,count, 1,tmp)
+                                self.write_to_excel(file_path,0,count, 0, title[i].text)
+                                self.write_to_excel(file_path,0,count, 1,tmp)
+                                print(count,title[i].text, tmp)
                                 count+=1
                             except Exception as e:
-                                print("写入有问题")
-                        else:
-                            pass
-                            # print(tmp+"已存在","text",title[i].text)
+                                print(e, "请关闭Excel 否则10秒后本条数据将不再写入")
+                                for i in range(10):
+                                    print(10 - i)
+                                    time.sleep(1)
+                                try:
+                                    self.write_to_excel(file_path, -1, count, 0, title[i].text)
+                                    self.write_to_excel(file_path, -1, count, 1, tmp)
+                                    print(count, title[i].text, tmp, browser.current_url)
+                                except Exception:
+                                    print("已漏掉数据...{}  {}".format(title[i].text, tmp))
 
 
                     next_paget = browser.find_element_by_css_selector("#pnnext > span:nth-child(2)")
                     next_paget.click()
-                    print("点击下一页")
-                    time.sleep(1)
+                    # print("点击下一页")
+                    time.sleep(wait_time)
                 except Exception as e:
                     try:
                         browser.find_element_by_css_selector("#pnnext > span:nth-child(2)")
                         continue
                     except Exception as e:
-                        print("no next")
+                        print("已经是最后一页")
                         break
                         # switch = input("是否已切换ip并继续爬取下个关键字？")
                         # if switch == "y":
                         #     break
                         # else:
                         #     print("请您切换ip")
+        # print("本次采集已获取url总数为：", str(count-tmp))
+        print("关键词搜索完毕，谢谢使用!")
+        while 1:
+            pass
 
 
 if __name__=="__main__":
